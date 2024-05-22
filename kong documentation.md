@@ -201,7 +201,7 @@ Fetch the Ingress IP address and update your DNS records to point to this addres
 kubectl get ingress -n kong kong-cp-kong-admin -o jsonpath='{.spec.rules[0].host}{": "}{range .status.loadBalancer.ingress[0]}{@.ip}{@.hostname}{end}'
 ```
 Configure your ingress controller\
-Set ingressController.enabled to true in your values-cp.yaml file to enable Kong Ingress Controller.\
+Set ingressController.enabled to true in your values-cp.yaml file to enable Kong Ingress Controller.
 ```
 ingressController:
 enabled: true
@@ -235,9 +235,9 @@ Fetch the Ingress IP address and update your DNS records to point to the Ingress
 ```
 #### Kong Manager Installation 
 Kong gateway is now installed.\
-Make sure that Kong's Admin API is accessible via HTTP from your local machine.\
+Make sure that Kong's Admin API is accessible via HTTP from your local machine.
 
-Kong Manager is hosted on the same node as the Admin API. To enable Kong Manager, modify your values-cp.yaml file as follows.\
+Kong Manager is hosted on the same node as the Admin API. To enable Kong Manager, modify your values-cp.yaml file as follows.
 
 Set admin_gui_url, admin_gui_api_url and admin_gui_session_conf under the env key.
 ```
