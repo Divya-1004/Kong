@@ -651,16 +651,16 @@ manager:
  enabled: false
 ```
 To apply these configuration files:
-- Run `terraform init` to initialize the directory and download the necessary provider plugins.\
-- Run `terraform plan` to generate an execution plan, allowing you to preview the changes Terraform will make to your infrastructure.\
-- Run `terraform apply` to execute the actions proposed in the Terraform plan.\
+- Run `terraform init` to initialize the directory and download the necessary provider plugins.
+- Run `terraform plan` to generate an execution plan, allowing you to preview the changes Terraform will make to your infrastructure.
+- Run `terraform apply` to execute the actions proposed in the Terraform plan.
 ![img](https://github.com/Divya-1004/Kong/blob/main/image.png)
 
 #### Testing
-To test your Kong Gateway's dashboard, you need to access it in your browser using the NodePort IP address and port assigned by Kubernetes. \
-- Open your browser and enter `NodeIP:NodePort`.\
-- For instance, if your node IP is 192.168.99.100 and your NodePort is 32444, you would enter 192.168.99.100:32444 in your browser.\
-- This will open your Kong Admin dashboard in your default web browser, allowing you to test and interact with it directly.\
+To test your Kong Gateway's dashboard, you need to access it in your browser using the NodePort IP address and port assigned by Kubernetes. 
+- Open your browser and enter `NodeIP:NodePort`.
+- For instance, if your node IP is 192.168.99.100 and your NodePort is 32444, you would enter 192.168.99.100:32444 in your browser.
+- This will open your Kong Admin dashboard in your default web browser, allowing you to test and interact with it directly.
 
 The Kong Admin dashboard should appear as shown below.
 
