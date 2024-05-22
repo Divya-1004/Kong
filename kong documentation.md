@@ -15,7 +15,7 @@ Kong API Gateway stands out as an advanced solution for API management, offering
 `3.6.1`
 
 ## Kong Deployment Architechture
-[![arch](architechture.png)]("D:\Divya\Difinative\cequence\architechture.png")\
+![arch]([https://example.com/photo.jpg](https://github.com/Divya-1004/Kong/blob/main/architechture.png))
 
 ## Kong Setup 
 The following are the two primary deployment methods for deploying the Kong API Gateway:
@@ -654,7 +654,7 @@ To apply these configuration files:
 - Run `terraform init` to initialize the directory and download the necessary provider plugins.\
 - Run `terraform plan` to generate an execution plan, allowing you to preview the changes Terraform will make to your infrastructure.\
 - Run `terraform apply` to execute the actions proposed in the Terraform plan.\
-[![img](image.png)]("D:\Divya\Difinative\cequence\image.png")
+![img](https://github.com/Divya-1004/Kong/blob/main/image.png)
 
 #### Testing
 To test your Kong Gateway's dashboard, you need to access it in your browser using the NodePort IP address and port assigned by Kubernetes. \
@@ -664,7 +664,8 @@ To test your Kong Gateway's dashboard, you need to access it in your browser usi
 
 The Kong Admin dashboard should appear as shown below.
 
-[![test](testing.png)](""D:\Divya\Difinative\cequence\testing.png"")
+![test](https://github.com/Divya-1004/Kong/blob/main/testing.png)
+
 
 ## Conclusion
 Kong API Gateway functions as an intermediary between clients and backend services, effectively managing API traffic. It operates on a plugin-based architecture, allowing developers to extend its functionality according to specific requirements. It offers various features including routing, authentication, rate limiting, logging, and caching, all crucial for API management. Kong relies on a datastore, typically PostgreSQL or Cassandra, to store configuration data and runtime information. Kong provides a user-friendly Admin API and Dashboard for configuration management and monitoring. Overall, Kong's architecture and feature set make it a versatile and powerful tool for managing APIs in a scalable and efficient manner.
