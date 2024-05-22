@@ -15,7 +15,7 @@ Kong API Gateway stands out as an advanced solution for API management, offering
 `3.6.1`
 
 ## Kong Deployment Architechture
-![arch]([https://example.com/photo.jpg](https://github.com/Divya-1004/Kong/blob/main/architechture.png))
+![arch](https://github.com/Divya-1004/Kong/blob/main/architechture.png)
 
 ## Kong Setup 
 The following are the two primary deployment methods for deploying the Kong API Gateway:
