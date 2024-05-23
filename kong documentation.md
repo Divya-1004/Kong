@@ -258,25 +258,18 @@ enterprise:
 Configure the manager section in values-cp.yaml. 
 ```
 manager:
- enabled: true
- http:
-   enabled: true
- tls:
-   enabled: false
-    
- ingress:
-   enabled: true
-   hostname: manager.example.com
-   path: /
-   pathType: Prefix
-   ingressClassName: alb
-   annotations:
-     alb.ingress.kubernetes.io/load-balancer-name: kong-alb-private
-     alb.ingress.kubernetes.io/group.name: demo.kong-alb-private
-     alb.ingress.kubernetes.io/target-type: instance
-     alb.ingress.kubernetes.io/scheme: internal
-     alb.ingress.kubernetes.io/healthcheck-path: /
-     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+  enabled: true
+  http:
+    enabled: true
+  tls:
+    enabled: false
+     
+  ingress:
+    enabled: true
+    hostname: manager.example.com
+    path: /
+    pathType: Prefix
+    ingressClassName: kong
 ```
 Updating the Helm release 
 ```
