@@ -431,16 +431,6 @@ cd helm-kong
 ```
 Within this directory, create a file named `main.tf` and add the following script to it.
 ```
-provider "kubernetes" {
-  config_path = "~/.kube/config"
-}
-
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
-  }
-}
-
 # Terraform code to generate TLS certificate and key using OpenSSL and create a Kubernetes secret
 # Create a provider configuration if needed
 # Generate the self-signed TLS certificate and key
@@ -500,6 +490,7 @@ provisioner "local-exec" {
   }
 }
 
+
 resource "helm_release" "kong" {
   name             = "kong-cp"
   repository       = "https://charts.konghq.com"
@@ -510,6 +501,78 @@ resource "helm_release" "kong" {
     "${file("values-cp.yaml")}"
   ]
   depends_on = [null_resource.secret]
+}
+
+resource "helm_release" "kong_dp" {
+  name             = "kong-dp"
+  repository       = "https://charts.konghq.com"
+  chart            = "kong"
+  create_namespace = false
+  namespace        = "kong"
+  values = [
+    file("values-dp.yaml")
+  ]
+  depends_on = [helm_release.kong]
+}
+
+#plugin
+resource "kong_consumer" "admin" {
+  username  = "admin"
+  custom_id = "kong123"
+}
+
+resource "kong_plugin" "key_auth_plugin" {
+  name = "key-auth"
+}
+
+resource "kong_consumer_key_auth" "consumer_key_auth" {
+  consumer_id = kong_consumer.admin.id
+  key         = "secret"
+  tags        = ["myTag", "anotherTag"]
+}
+```
+Create a file named `variables.tf`, to declare all the variables, and add the following script 
+```
+variable "kong_admin_uri" {
+ description = "The URI of the Kong Admin API"
+ type        = string
+}
+
+variable "kube_config_path" {
+  description = "The path to the Kubernetes config file"
+  type        = string
+}
+```
+Next create a file named `terraform.tfvars`, to define all the values of the variables, and add the following script
+```
+kong_admin_uri   = "http://15.235.143.186:32180"
+kube_config_path = "~/.kube/config"
+```
+Then create a file named `provider.tf` and add the following script
+```
+provider "kubernetes" {
+  config_path = var.kube_config_path
+}
+
+provider "helm" {
+  kubernetes {
+    config_path = var.kube_config_path
+  }
+}
+
+provider "kong" {
+  kong_admin_uri = var.kong_admin_uri
+}
+```
+Create a file named `version.tf` and add the following script
+```
+terraform {
+  required_providers {
+    kong = {
+      source  = "kevholditch/kong"
+      version = "~> 6.5.1"
+    }
+  }
 }
 ```
 Next, create a file named `values-cp.yaml` in the same directory and include the script below.
