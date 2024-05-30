@@ -13,8 +13,8 @@ secretVolumes:
   - kong-cluster-cert
 
 env:
-  admin_gui_url: http://15.235.143.186:31387
-  admin_gui_api_url: http://15.235.143.186:31555
+  admin_gui_url: http://15.235.143.186:31959
+  admin_gui_api_url: http://15.235.143.186:32180
   admin_gui_session_conf: '{"secret":"secret","storage":"kong","cookie_secure":false}'
   # This is a control_plane node
   role: control_plane
