@@ -23,7 +23,7 @@ Data Plane: It is responsible for processing incoming requests and routing them 
 - Terraform
 
 ## Version
-`3.6.1`
+`3.7.0`
 
 ## Kong EKS Architechture
 ![arch](https://github.com/Divya-1004/Kong/blob/main/EKS-arch.drawio.png)
