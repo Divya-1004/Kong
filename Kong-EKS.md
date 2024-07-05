@@ -60,11 +60,13 @@ provider "aws" {
 
 # Fetch available availability zones
 data "aws_availability_zones" "available" {
+  count      = var.create_eks ? 1: 0
   state = "available"
 }
 
 # Create VPC
 resource "aws_vpc" "eks_vpc" {
+  count      = var.create_eks ? 1: 0
   cidr_block = var.vpc_cidr_block
 
   enable_dns_hostnames = true
@@ -77,10 +79,10 @@ resource "aws_vpc" "eks_vpc" {
 
 # Create private subnets
 resource "aws_subnet" "private_subnets" {
-  count                   = length(var.private_subnet_cidr_blocks)
-  vpc_id                  = aws_vpc.eks_vpc.id
+  count                   = var.create_eks ? length(var.private_subnet_cidr_blocks) : 0
+  vpc_id                  = aws_vpc.eks_vpc[0].id
   cidr_block              = var.private_subnet_cidr_blocks[count.index]
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  availability_zone       = data.aws_availability_zones.available[0].names[count.index]
   map_public_ip_on_launch = false
 
   tags = {
@@ -92,10 +94,10 @@ resource "aws_subnet" "private_subnets" {
 
 # Create public subnets
 resource "aws_subnet" "public_subnets" {
-  count                   = length(var.public_subnet_cidr_blocks)
-  vpc_id                  = aws_vpc.eks_vpc.id
+  count                   = var.create_eks ? length(var.public_subnet_cidr_blocks) : 0
+  vpc_id                  = aws_vpc.eks_vpc[0].id
   cidr_block              = var.public_subnet_cidr_blocks[count.index]
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  availability_zone       = data.aws_availability_zones.available[0].names[count.index]
   map_public_ip_on_launch = true
 
   tags = {
@@ -107,7 +109,8 @@ resource "aws_subnet" "public_subnets" {
 
 # Create internet gateway
 resource "aws_internet_gateway" "eks_igw" {
-  vpc_id = aws_vpc.eks_vpc.id
+  count  = var.create_eks ? 1: 0
+  vpc_id = aws_vpc.eks_vpc[count.index].id
 
   tags = {
     Name = "eks-igw"
@@ -116,7 +119,8 @@ resource "aws_internet_gateway" "eks_igw" {
 
 # Create NAT gateway
 resource "aws_nat_gateway" "eks_ngw" {
-  allocation_id = aws_eip.eks_eip.id
+  count         = var.create_eks ? 1: 0
+  allocation_id = aws_eip.eks_eip[count.index].id
   subnet_id     = aws_subnet.public_subnets[0].id
 
   tags = {
@@ -126,6 +130,7 @@ resource "aws_nat_gateway" "eks_ngw" {
 
 # Create Elastic IP for NAT gateway
 resource "aws_eip" "eks_eip" {
+  count  = var.create_eks ? 1: 0
   domain = "vpc"
 
   tags = {
@@ -135,11 +140,12 @@ resource "aws_eip" "eks_eip" {
 
 # Create route tables for private and public subnets
 resource "aws_route_table" "private_rt" {
-  vpc_id = aws_vpc.eks_vpc.id
+  count  = var.create_eks ? 1: 0
+  vpc_id = aws_vpc.eks_vpc[count.index].id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.eks_ngw.id
+    nat_gateway_id = aws_nat_gateway.eks_ngw[count.index].id
   }
 
   tags = {
@@ -148,11 +154,12 @@ resource "aws_route_table" "private_rt" {
 }
 
 resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.eks_vpc.id
+  count  = var.create_eks ? 1: 0
+  vpc_id = aws_vpc.eks_vpc[count.index].id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.eks_igw.id
+    gateway_id = aws_internet_gateway.eks_igw[count.index].id
   }
 
   tags = {
@@ -162,20 +169,21 @@ resource "aws_route_table" "public_rt" {
 
 # Associate route tables with subnets
 resource "aws_route_table_association" "private_rt_assoc" {
-  count          = length(var.private_subnet_cidr_blocks)
+  count          = length(var.private_subnet_cidr_blocks) * (var.create_eks ? 1: 0)
   subnet_id      = aws_subnet.private_subnets[count.index].id
-  route_table_id = aws_route_table.private_rt.id
+  route_table_id = aws_route_table.private_rt[0].id
 }
 
 resource "aws_route_table_association" "public_rt_assoc" {
-  count          = length(var.public_subnet_cidr_blocks)
+  count          = length(var.public_subnet_cidr_blocks) * (var.create_eks ? 1: 0)
   subnet_id      = aws_subnet.public_subnets[count.index].id
-  route_table_id = aws_route_table.public_rt.id
+  route_table_id = aws_route_table.public_rt[0].id
 }
 
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_cluster_role" {
-  name = "eks-cluster-role"
+  count = var.create_eks ? 1: 0
+  name  = "eks-cluster-role"
 
   assume_role_policy = <<POLICY
 {
@@ -195,19 +203,22 @@ POLICY
 
 # Attach required policies to the EKS cluster role
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
+  count      = var.create_eks ? 1: 0
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.eks_cluster_role.name
+  role       = aws_iam_role.eks_cluster_role[count.index].name
 }
 
 resource "aws_iam_role_policy_attachment" "eks_service_policy" {
+  count      = var.create_eks ? 1: 0
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role       = aws_iam_role.eks_cluster_role.name
+  role       = aws_iam_role.eks_cluster_role[count.index].name
 }
 
 ##00
 # Create an IAM role for the EKS node group
 resource "aws_iam_role" "node_group_role" {
-  name = "eks-node-group-role"
+  count = var.create_eks ? 1: 0
+  name  = "eks-node-group-role"
 
   assume_role_policy = <<POLICY
 {
@@ -227,28 +238,32 @@ POLICY
 
 # Attach the required policies to the node group role
 resource "aws_iam_role_policy_attachment" "node_group_policy_attachment" {
+  count      = var.create_eks ? 1: 0
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.node_group_role.name
+  role       = aws_iam_role.node_group_role[count.index].name
 }
 
 resource "aws_iam_role_policy_attachment" "node_group_cni_policy_attachment" {
+  count      = var.create_eks ? 1: 0
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.node_group_role.name
+  role       = aws_iam_role.node_group_role[count.index].name
 }
 
 resource "aws_iam_role_policy_attachment" "node_group_ecr_policy_attachment" {
+  count      = var.create_eks ? 1: 0
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.node_group_role.name
+  role       = aws_iam_role.node_group_role[count.index].name
 }
 
 # Create EKS cluster
 resource "aws_eks_cluster" "eks_cluster" {
+  count    = var.create_eks ? 1: 0
   name     = var.cluster_name
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = aws_iam_role.eks_cluster_role[count.index].arn
 
   vpc_config {
     subnet_ids              = aws_subnet.private_subnets[*].id
-    security_group_ids      = [aws_security_group.eks_cluster_sg.id]
+    security_group_ids      = [aws_security_group.eks_cluster_sg[count.index].id]
     endpoint_private_access = true
     endpoint_public_access  = true
   }
@@ -261,9 +276,10 @@ resource "aws_eks_cluster" "eks_cluster" {
 
 # Create security group for EKS cluster
 resource "aws_security_group" "eks_cluster_sg" {
+  count       = var.create_eks ? 1: 0
   name        = "eks-cluster-sg"
   description = "Security group for EKS cluster"
-  vpc_id      = aws_vpc.eks_vpc.id
+  vpc_id      = aws_vpc.eks_vpc[count.index].id
 
   egress {
     from_port   = 0
@@ -278,6 +294,7 @@ resource "aws_security_group" "eks_cluster_sg" {
 }
 
 resource "aws_launch_template" "eks_nodes1" {
+  count         = var.create_eks ? 1: 0
   name_prefix   = "eks-nodes1-"
   instance_type = "m6i.2xlarge"
 
@@ -292,9 +309,10 @@ resource "aws_launch_template" "eks_nodes1" {
 }
 
 resource "aws_eks_node_group" "node_group1" {
-  cluster_name    = aws_eks_cluster.eks_cluster.name
+  count           = var.create_eks ? 1: 0
+  cluster_name    = aws_eks_cluster.eks_cluster[count.index].name
   node_group_name = "node-group-2"
-  node_role_arn   = aws_iam_role.node_group_role.arn
+  node_role_arn   = aws_iam_role.node_group_role[count.index].arn
   subnet_ids      = tolist(aws_subnet.private_subnets[*].id)
 
   scaling_config {
@@ -304,8 +322,8 @@ resource "aws_eks_node_group" "node_group1" {
   }
 
   launch_template {
-    id      = aws_launch_template.eks_nodes1.id
-    version = aws_launch_template.eks_nodes1.latest_version
+    id      = aws_launch_template.eks_nodes1[count.index].id
+    version = aws_launch_template.eks_nodes1[count.index].latest_version
   }
 
   depends_on = [
@@ -316,19 +334,22 @@ resource "aws_eks_node_group" "node_group1" {
 }
 
 data "aws_route53_zone" "main_zone" {
-  name = "demo.cequence.ai."
+  count = var.create_kong ? 1: 0
+  name  = "demo.cequence.ai."
 }
 
 resource "aws_route53_record" "wildcard_subdomain" {
-  zone_id = data.aws_route53_zone.main_zone.zone_id
+  count   = var.create_kong ? 1: 0
+  zone_id = data.aws_route53_zone.main_zone[0].zone_id
   name    = "*.kongtest.demo.cequence.ai"
   type    = "CNAME"
   ttl     = 300
 
-  records = [data.kubernetes_service.kong-proxy.status.0.load_balancer.0.ingress.0.hostname]
+  records = [data.kubernetes_service.kong-proxy[count.index].status.0.load_balancer.0.ingress.0.hostname]
 }
 
 resource "null_resource" "kubectl" {
+  count     = var.create_eks ? 1: 0
   provisioner "local-exec" {
     command = "aws eks --region ${var.aws_region} update-kubeconfig --name ${var.cluster_name} --kubeconfig ./kubeconfig"
   }
@@ -338,16 +359,19 @@ resource "null_resource" "kubectl" {
   ]
 }
 
-data "aws_caller_identity" "current" {}
+data "aws_caller_identity" "current" {
+  count            = var.create_eks ? 1: 0
+}
 
 resource "helm_release" "aws_csi" {
+  count            = var.create_eks ? 1: 0
   name             = "aws-ebs-csi-driver"
   repository       = "https://kubernetes-sigs.github.io/aws-ebs-csi-driver"
   chart            = "aws-ebs-csi-driver"
   create_namespace = false
   namespace        = "kube-system"
   values = [templatefile("csi_values.yaml", {
-    account_id = data.aws_caller_identity.current.account_id
+    account_id = data.aws_caller_identity.current[0].account_id
   })]
   depends_on = [
     null_resource.kubectl,
@@ -389,19 +413,44 @@ variable "cluster_name" {
   description = "Name of the EKS cluster"
 }
 
+variable "create_eks" {
+  description = "To check if EKS should be created"
+  type        = bool
+  default     = false
+}
+
+variable "create_kong" {
+  description = "To check if kong should be created"
+  type        = bool
+  default     = false
+}
+
+variable "create_app" {
+  description = "To check if application should be created"
+  type        = bool
+  default     = false
+}
+
+variable "number_of_subnets" {
+  description = "The number of subnets to create"
+  type        = number
+  default     = 2
+}
+
 ```
 Next create a file named `terraform.tfvars`, to define all the values of the variables, and add below content in it.
 Note that, if deploying Kong on an existing Kubernetes cluster, the `kube_config_path` variable must be updated to point to the configuration file of the target cluster. This ensures that Terraform and Helm commands are executed against the correct cluster.
 The flags to create an eks cluster, deploy kong and application are included and must be adjusted based on deployment requirements: set `create_eks` to true to create a new EKS cluster, `create_kong` to true to deploy Kong on the Kubernetes cluster, and `create_app` to true to deploy the application. Ensure these flags are configured appropriately to meet your specific needs.
 ```
-aws_region                 = "YOUR-REGION"
+aws_region                 = "ap-south-1"
 vpc_cidr_block             = "10.100.0.0/16"
 private_subnet_cidr_blocks = ["10.100.1.0/24", "10.100.2.0/24"]
 public_subnet_cidr_blocks  = ["10.100.3.0/24", "10.100.4.0/24"]
-cluster_name               = "CLUSTER-NAME"
+cluster_name               = "cq-kong"
 
 ## Kong Related Variables
-kube_config_path = "./kubeconfig"
+#kube_config_path = "./kubeconfig"
+kube_config_path = "~/.kube/config"
 chart_version    = "2.37.0"
 namespace        = "nskong"
 helm_repository  = "https://charts.konghq.com"
@@ -410,59 +459,67 @@ database         = "postgres"
 pg_database      = "kong"
 pg_user          = "kong"
 pg_password      = "demo123"
+create_eks       = false
+create_kong      = false
+create_app       = false
 ```
 Then create a file named `output.tf` and add the following script.
 ```
 output "cluster_endpoint" {
-  description = "Endpoint for EKS control plane"
-  value       = aws_eks_cluster.eks_cluster.endpoint
+  description  = "Endpoint for EKS control plane"
+   value       = var.create_eks ? aws_eks_cluster.eks_cluster[0].endpoint : null
 }
 
 output "cluster_name" {
   description = "Name of the EKS cluster"
-  value       = aws_eks_cluster.eks_cluster.name
+   value       = length(aws_eks_cluster.eks_cluster) > 0 ? var.create_eks ? aws_eks_cluster.eks_cluster[0].name : aws_eks_cluster.eks_cluster[0].name : null
 }
 
 output "role_name" {
   description = "role name"
-  value       = aws_iam_role.eks_csi.arn
+  value       =  var.create_eks ? aws_iam_role.eks_csi[0].arn : null
 }
 ```
 Create a file named `custom.tf` and add the following script.
 ```
 data "tls_certificate" "eks" {
-  url = aws_eks_cluster.eks_cluster.identity[0].oidc[0].issuer
+  count = var.create_eks ? 1: 0
+  url   = aws_eks_cluster.eks_cluster[0].identity[0].oidc[0].issuer
 }
 
 resource "aws_iam_openid_connect_provider" "eks" {
+  count = var.create_eks ? 1: 0
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
-  url             = aws_eks_cluster.eks_cluster.identity[0].oidc[0].issuer
+  thumbprint_list = [data.tls_certificate.eks[0].certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.eks_cluster[0].identity[0].oidc[0].issuer
 }
 
 resource "aws_iam_role" "eks_csi" {
-  assume_role_policy = data.aws_iam_policy_document.eks_csi.json
+  count = var.create_eks ? 1: 0
+  assume_role_policy = data.aws_iam_policy_document.eks_csi[0].json
   name               = "eks-csi"
 }
 
 resource "aws_iam_role_policy_attachment" "attach" {
+  count = var.create_eks ? 1: 0
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-  role       = aws_iam_role.eks_csi.name
+  role       = aws_iam_role.eks_csi[0].name
 }
 
 data "aws_iam_policy_document" "eks_csi" {
+  count = var.create_eks ? 1: 0
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     effect  = "Allow"
 
     condition {
       test     = "StringEquals"
-      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
+      variable = "${replace(aws_iam_openid_connect_provider.eks[0].url, "https://", "")}:sub"
       values   = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
     }
 
     principals {
-      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+      identifiers = [aws_iam_openid_connect_provider.eks[0].arn]
       type        = "Federated"
     }
   }
@@ -482,12 +539,14 @@ provider "helm" {
 
 # Generate the self-signed TLS certificate and key
 resource "tls_private_key" "tls_key" {
+  count       = var.create_kong ? 1: 0
   algorithm   = "ECDSA"
   ecdsa_curve = "P384" # Use the secp384r1 curve
 }
 
 resource "tls_self_signed_cert" "tls_cert" {
-  private_key_pem = tls_private_key.tls_key.private_key_pem
+  count           = var.create_kong ? 1: 0
+  private_key_pem = tls_private_key.tls_key[count.index].private_key_pem
   allowed_uses = [
     "cert_signing",
     "crl_signing",
@@ -503,31 +562,45 @@ resource "tls_self_signed_cert" "tls_cert" {
   validity_period_hours = var.validity
 }
 
-resource "kubernetes_namespace" "kong_namespace" {
-  metadata {
-    name = var.namespace
+resource "null_resource" "sleep" {
+  count     = var.create_kong ? 1: 0
+  provisioner "local-exec" {
+    command = "sleep 60"
   }
   depends_on = [
     null_resource.kubectl,
   ]
 }
 
+resource "kubernetes_namespace" "kong_namespace" {
+  count = var.create_kong ? 1: 0
+  metadata {
+    name = var.namespace
+  }
+  depends_on = [
+    null_resource.sleep,
+  ]
+}
+
 # Create Kubernetes secret for TLS certificate and key
 resource "kubernetes_secret" "kong_cluster_cert" {
+  count = var.create_kong ? 1: 0
   metadata {
     name      = "kong-cluster-cert"
     namespace = var.namespace
   }
   data = {
-    "tls.crt" = tls_self_signed_cert.tls_cert.cert_pem
-    "tls.key" = tls_private_key.tls_key.private_key_pem
+    "tls.crt" = tls_self_signed_cert.tls_cert[count.index].cert_pem
+    "tls.key" = tls_private_key.tls_key[count.index].private_key_pem
   }
   depends_on = [
     kubernetes_namespace.kong_namespace,
   ]
 }
 
+
 resource "helm_release" "kong" {
+  count            = var.create_kong ? 1: 0
   name             = "kong-cp"
   repository       = var.helm_repository
   chart            = var.helm_chart
@@ -545,10 +618,21 @@ resource "helm_release" "kong" {
     kubernetes_secret.kong_cluster_cert,
     kubernetes_namespace.kong_namespace,
     helm_release.aws_csi,
+    null_resource.patch_storageclass,
   ]
 }
 
+resource "null_resource" "patch_storageclass" {
+  count = var.create_kong ? 1: 0
+  provisioner "local-exec" {
+    command = <<EOT
+      kubectl patch storageclass gp2 -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+    EOT
+  }
+}
+
 resource "helm_release" "kong_dp" {
+  count            = var.create_kong ? 1: 0
   name             = "kong-dp"
   repository       = var.helm_repository
   chart            = var.helm_chart
@@ -564,6 +648,7 @@ resource "helm_release" "kong_dp" {
 }
 
 data "kubernetes_service" "kong-proxy" {
+  count = var.create_kong ? 1: 0
   metadata {
     name      = "kong-dp-kong-proxy"
     namespace = var.namespace
@@ -571,9 +656,11 @@ data "kubernetes_service" "kong-proxy" {
   depends_on = [helm_release.kong_dp]
 }
 
+
 output "kong_proxy_service_ip" {
-  value = data.kubernetes_service.kong-proxy.status.0.load_balancer.0.ingress.0.hostname
+  value = var.create_kong ? data.kubernetes_service.kong-proxy[0].status.0.load_balancer.0.ingress.0.hostname : null
 }
+
 
 variable "kube_config_path" {
   description = "The path to the Kubernetes config file"
