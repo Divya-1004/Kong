@@ -391,6 +391,8 @@ variable "cluster_name" {
 
 ```
 Next create a file named `terraform.tfvars`, to define all the values of the variables, and add below content in it.
+Note that, if deploying Kong on an existing Kubernetes cluster, the `kube_config_path` variable must be updated to point to the configuration file of the target cluster. This ensures that Terraform and Helm commands are executed against the correct cluster.
+The flags to create an eks cluster, deploy kong and application are included and must be adjusted based on deployment requirements: set `create_eks` to true to create a new EKS cluster, `create_kong` to true to deploy Kong on the Kubernetes cluster, and `create_app` to true to deploy the application. Ensure these flags are configured appropriately to meet your specific needs.
 ```
 aws_region                 = "YOUR-REGION"
 vpc_cidr_block             = "10.100.0.0/16"
