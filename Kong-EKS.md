@@ -17,16 +17,22 @@ Control Plane: It is responsible for managing and configuring routes such as ser
 Data Plane: It is responsible for processing incoming requests and routing them to the appropriate services. It acts as the gateway for incoming traffic and applies the policies and configurations set in the control plane. The data plane is where kong's core functionality, such as routing, authentication and rate limiting. It does not interact directly with the database but instead relies on the Control Plane for configuration updates.
 
 ## Pre-requisites
-- EKS Cluster
 - Helm
 - PostgreSQL
-- Terraform
+- Terraform v1.8.2
 
 ## Version
-`3.7.0`
+| Helm version | Kong version |  
+| ------------ | ------------ |
+| 2.37.0       | 3.7.0        | 
+| 2.38.0       | 3.6.0        | 
+
+
 
 ## Kong EKS Architechture
 ![arch](https://github.com/Divya-1004/Kong/blob/main/EKS-arch.drawio.png)
+
+The flags to create an eks cluster, deploy kong and application are included and must be adjusted based on deployment requirements: set `create_eks` to true to create a new EKS cluster, `create_kong` to true to deploy Kong on the Kubernetes cluster, and `create_app` to true to deploy the application. Ensure these flags are configured appropriately to meet your specific needs.
 
 ## Kong Setup 
 
@@ -440,7 +446,7 @@ variable "number_of_subnets" {
 ```
 Next create a file named `terraform.tfvars`, to define all the values of the variables, and add below content in it.\
 Note that, if deploying Kong on an existing Kubernetes cluster, the `kube_config_path` variable must be updated to point to the configuration file of the target cluster. This ensures that Terraform and Helm commands are executed against the correct cluster.
-The flags to create an eks cluster, deploy kong and application are included and must be adjusted based on deployment requirements: set `create_eks` to true to create a new EKS cluster, `create_kong` to true to deploy Kong on the Kubernetes cluster, and `create_app` to true to deploy the application. Ensure these flags are configured appropriately to meet your specific needs.
+
 ```
 aws_region                 = "ap-south-1"
 vpc_cidr_block             = "10.100.0.0/16"
