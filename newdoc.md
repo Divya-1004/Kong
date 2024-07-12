@@ -79,6 +79,8 @@ Now, Terraform will provision the following resources on AWS.
 9. Route53
 10. EKS Cluster
 
+>  If the error message "'config_path' refers to an invalid path: './kubeconfig': stat ./kubeconfig: no such file or directory" is encountered, it can be safely ignored. 
+
 ## Kong Manager UI access (Optional)
 Access the Kong Manager dashboard through a browser using the domain name.
 - Open the web browser and enter https://kong-admin.kongtest.demo.cequence.ai. 
